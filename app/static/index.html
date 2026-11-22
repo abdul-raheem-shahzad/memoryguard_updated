@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MemoryGuard console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F2F4F1; --panel:#FFFFFF; --ink:#1C2421; --muted:#5E6A65; --rule:#D5DBD7;
+  --quar:#8E2A4B; --review:#A77A12; --trusted:#2F6B4F; --thread:#34508A;
+  --ui:"Atkinson Hyperlegible",system-ui,sans-serif; --ev:"Newsreader",Georgia,serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 var(--ui)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--thread);outline-offset:2px}
+header{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:baseline;padding:18px 28px;border-bottom:1px solid var(--rule)}
+h1{font-size:20px;margin:0}
+#summary{color:var(--muted);flex:1;min-width:260px}
+.key{display:flex;gap:6px;align-items:center;color:var(--muted);font-size:13px}
+.key input{width:120px;padding:4px 8px;border:1px solid var(--rule);border-radius:4px;background:var(--panel)}
+main{display:grid;grid-template-columns:minmax(300px,380px) 1fr;min-height:calc(100vh - 64px)}
+@media (max-width:820px){main{grid-template-columns:1fr}}
+aside{border-right:1px solid var(--rule);display:flex;flex-direction:column}
+.filters{display:flex;gap:4px;padding:12px 16px;flex-wrap:wrap}
+.filters button{border:1px solid var(--rule);background:transparent;border-radius:999px;padding:3px 12px;cursor:pointer}
+.filters button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.search{padding:0 16px 12px}
+.search input{width:100%;padding:7px 10px;border:1px solid var(--rule);border-radius:4px;background:var(--panel)}
+#list{list-style:none;margin:0;padding:0;overflow:auto;flex:1}
+#list li button{all:unset;box-sizing:border-box;display:grid;grid-template-columns:1fr auto;gap:2px 12px;width:100%;padding:10px 16px;border-top:1px solid var(--rule);cursor:pointer;border-left:4px solid transparent}
+#list li button:hover{background:#E8ECE9}
+#list li button[aria-current="true"]{background:var(--panel)}
+#list .txt{font-family:var(--ev);font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#list .risk{font-variant-numeric:tabular-nums;font-weight:700;text-align:right}
+#list .sub{color:var(--muted);font-size:12.5px;grid-column:1/-1}
+.s-quarantined{border-left-color:var(--quar)!important} .s-review{border-left-color:var(--review)!important}
+.s-active{border-left-color:var(--trusted)!important}
+section#detail{padding:28px 36px;max-width:900px}
+.empty{color:var(--muted);padding:48px 36px}
+.status{display:inline-block;padding:1px 10px;border-radius:3px;color:#fff;font-size:13px}
+.st-quarantined{background:var(--quar)} .st-review{background:var(--review);color:#1C2421}
+.st-active{background:var(--trusted)} .st-superseded,.st-deleted{background:var(--muted)}
+blockquote{font-family:var(--ev);font-size:26px;line-height:1.35;margin:14px 0 8px;max-width:34em}
+.meta{color:var(--muted);font-size:13.5px;margin-bottom:22px}
+.meta b{color:var(--ink);font-variant-numeric:tabular-nums}
+h2{font-size:15px;margin:26px 0 8px}
+.reasons{margin:0;padding-left:18px;max-width:62ch}
+.bars{display:grid;grid-template-columns:170px 1fr 36px;gap:6px 10px;align-items:center;max-width:560px}
+.bar{height:8px;background:var(--rule);border-radius:4px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ink)}
+.bar.hot i{background:var(--quar)}
+.bars span:last-child{font-variant-numeric:tabular-nums;text-align:right}
+/* lineage thread: the signature element */
+.thread{position:relative;margin:6px 0 0;padding:0 0 0 26px;list-style:none;max-width:640px}
+.thread::before{content:"";position:absolute;left:8px;top:10px;bottom:10px;width:3px;background:var(--thread);border-radius:2px}
+.thread li{position:relative;padding:6px 0 10px}
+.thread li::before{content:"";position:absolute;left:-24px;top:11px;width:11px;height:11px;border-radius:50%;background:var(--paper);border:3px solid var(--thread)}
+.thread li.self::before{background:var(--thread);width:15px;height:15px;left:-26px;top:9px}
+.thread li.bad::before{border-color:var(--quar)}
+.thread .t{font-family:var(--ev);font-size:16px}
+.thread .d{color:var(--muted);font-size:12.5px}
+.thread button{all:unset;cursor:pointer;text-decoration:underline;text-decoration-color:var(--rule)}
+section#detail table{display:block;overflow-x:auto}
+table{border-collapse:collapse;width:100%;max-width:760px;font-size:13.5px}
+td,th{text-align:left;padding:6px 8px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-weight:700;color:var(--muted)}
+td.num{font-variant-numeric:tabular-nums}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+.actions button{padding:6px 14px;border-radius:4px;border:1px solid var(--ink);background:var(--panel);cursor:pointer}
+.actions button.danger{border-color:var(--quar);color:var(--quar)}
+.actions input{flex:1;min-width:200px;padding:6px 10px;border:1px solid var(--rule);border-radius:4px}
+.key button{border:1px solid var(--rule);background:var(--panel);border-radius:4px;padding:3px 10px;cursor:pointer}
+.gate{position:fixed;inset:0;background:var(--paper);display:grid;place-items:center;z-index:10;padding:24px}
+.gate[hidden],.key[hidden]{display:none!important}
+.gate form{background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:26px 28px;max-width:420px;width:100%}
+.gate h2{margin:0 0 10px;font-size:19px}
+.gate p{color:var(--muted);font-size:13.5px;margin:0 0 14px;max-width:46ch}
+.gate label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+.gate input{width:100%;padding:8px 10px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);margin-bottom:12px}
+.gate form>button{padding:8px 18px;border-radius:4px;border:1px solid var(--ink);background:var(--ink);color:var(--paper);cursor:pointer}
+.gate #loginerr{color:var(--quar);margin:12px 0 0;min-height:1.2em}
+.gate .hint{margin-top:14px;font-size:12.5px}
+.gate code{font-size:12.5px;background:var(--paper);padding:1px 5px;border-radius:3px}
+#toast{position:fixed;bottom:18px;right:18px;background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:4px;opacity:0;transition:opacity .2s}
+#toast.on{opacity:1}
+@media (prefers-reduced-motion:reduce){#toast{transition:none}}
+</style>
+</head>
+<body>
+<header>
+  <h1>MemoryGuard</h1>
+  <p id="summary">Connecting…</p>
+  <div class="key" id="who" hidden><span id="whoami"></span> <button id="logout" type="button">Sign out</button></div>
+</header>
+<div id="gate" class="gate" hidden>
+  <form id="loginform">
+    <h2>Sign in</h2>
+    <p>The console runs on a session cookie. Paste an <b>admin</b> API key once; it is exchanged for a session and never stored in the browser.</p>
+    <label for="loginkey">API key</label>
+    <input id="loginkey" type="password" autocomplete="off" spellcheck="false" placeholder="mg_adm_…">
+    <button type="submit">Sign in</button>
+    <p id="loginerr" role="alert"></p>
+    <p class="hint">No key yet? The server prints one on first start, or run <code>python -m app.manage bootstrap</code>.</p>
+  </form>
+</div>
+<main>
+  <aside>
+    <div class="filters" role="group" aria-label="Filter by status">
+      <button data-s="quarantined" aria-pressed="true">Quarantined</button>
+      <button data-s="review" aria-pressed="false">Needs review</button>
+      <button data-s="active" aria-pressed="false">Active</button>
+      <button data-s="" aria-pressed="false">All</button>
+    </div>
+    <div class="search"><input id="q" type="search" placeholder="Search memory text" aria-label="Search memory text"></div>
+    <ul id="list"></ul>
+  </aside>
+  <section id="detail"><p class="empty">Select a memory to see why it was flagged and where it came from.</p></section>
+</main>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let filter = "quarantined", current = null;
+
+async function api(path, opts = {}) {
+  const r = await fetch(path, {...opts, credentials: "same-origin", headers: {"Content-Type": "application/json"}});
+  if (r.status === 401) { showGate(); throw new Error("Your session ended. Sign in again."); }
+  if (r.status === 429) throw new Error("Rate limited. Wait a moment and try again.");
+  if (!r.ok) {
+    let d = `Request failed (${r.status})`;
+    try { const j = await r.json(); if (j.detail) d = j.detail; } catch (e) {}
+    throw new Error(d);
+  }
+  return r.json();
+}
+
+function showGate() { $("#gate").hidden = false; $("#who").hidden = true; $("#loginkey").focus(); }
+
+async function start() {
+  let me;
+  try { me = await api("/v1/auth/me"); } catch (e) { showGate(); return; }
+  $("#gate").hidden = true;
+  $("#who").hidden = false;
+  $("#whoami").textContent = `${me.name} (${me.role})`;
+  loadSummary(); loadList();
+}
+
+$("#loginform").addEventListener("submit", async e => {
+  e.preventDefault();
+  $("#loginerr").textContent = "";
+  try {
+    const r = await fetch("/v1/auth/login", {method: "POST", credentials: "same-origin",
+      headers: {"Content-Type": "application/json"}, body: JSON.stringify({api_key: $("#loginkey").value})});
+    if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.detail || "Sign in failed"); }
+    $("#loginkey").value = "";
+    await start();
+  } catch (err) { $("#loginerr").textContent = err.message; }
+});
+
+$("#logout").addEventListener("click", async () => {
+  await fetch("/v1/auth/logout", {method: "POST", credentials: "same-origin"});
+  location.reload();
+});
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("on"); setTimeout(() => t.classList.remove("on"), 2600); }
+
+async function loadSummary() {
+  try {
+    const s = await api("/v1/stats"), b = s.by_status;
+    let line = `${b.quarantined || 0} quarantined and ${b.review || 0} waiting for review, out of ${s.memories} memories across ${s.agents} agents. ${s.blocked_actions} actions blocked.`;
+    try {
+      const v = await api("/v1/audit/verify");
+      if (!v.ok) line += ` Audit log FAILS verification at ${v.problems.length} entr${v.problems.length === 1 ? "y" : "ies"}.`;
+    } catch (e) {}
+    $("#summary").textContent = line;
+  } catch (e) { $("#summary").textContent = e.message; }
+}
+
+async function loadList() {
+  const q = encodeURIComponent($("#q").value.trim());
+  let rows = [];
+  try { rows = await api(`/v1/memories?status=${filter}&q=${q}`); } catch (e) { $("#list").innerHTML = `<li class="empty">${esc(e.message)}</li>`; return; }
+  if (!rows.length) { $("#list").innerHTML = `<li class="empty">Nothing here. Seed data with python demo/seed.py.</li>`; return; }
+  $("#list").innerHTML = rows.map(m => `<li><button class="s-${m.status}" data-id="${m.id}" aria-current="${m.id === current}">
+    <span class="txt">${esc(m.content)}</span><span class="risk" title="Risk score">${m.risk_score}</span>
+    <span class="sub">${esc(m.agent_id)}, ${esc(m.source_type.replace("_"," "))}, trust ${m.trust_score}</span></button></li>`).join("");
+}
+
+function bars(signals) {
+  const e = Object.entries(signals).sort((a, b) => b[1] - a[1]);
+  return e.map(([k, v]) => `<span>${esc(k === "source" ? "source distrust" : k.replaceAll("_", " "))}</span>
+    <div class="bar ${v >= 80 && k !== "source" ? "hot" : ""}"><i style="width:${v}%"></i></div><span>${v}</span>`).join("");
+}
+
+function node(n, cls) {
+  return `<li class="${cls} ${n.status !== "active" ? "bad" : ""}">
+    <div class="t">${cls === "self" ? esc(n.content) : `<button data-id="${n.id}">${esc(n.content)}</button>`}</div>
+    <div class="d">${esc(n.source_type.replace("_"," "))}, trust ${n.trust_score}, ${esc(n.status)}</div></li>`;
+}
+
+async function openMemory(id) {
+  current = id;
+  document.querySelectorAll("#list button").forEach(b => b.setAttribute("aria-current", b.dataset.id === id));
+  let r, v;
+  try { [r, v] = await Promise.all([api(`/v1/memories/${id}/report`), api(`/v1/memories/${id}/versions`)]); }
+  catch (e) { $("#detail").innerHTML = `<p class="empty">${esc(e.message)}</p>`; return; }
+  const m = r.memory, p = r.provenance;
+  const lineage = (p.ancestors.length || p.descendants.length)
+    ? `<ul class="thread">${[...p.ancestors].reverse().map(n => node(n, "anc")).join("")}${node(p.memory, "self")}${p.descendants.map(n => node(n, "desc")).join("")}</ul>`
+    : `<p class="meta">Original memory. Nothing was derived from it yet.</p>`;
+  $("#detail").innerHTML = `
+    <span class="status st-${m.status}">${esc(m.status)}</span>
+    <blockquote>${esc(m.content)}</blockquote>
+    <p class="meta">Risk <b>${m.risk_score}</b>, trust <b>${m.trust_score}</b>, ${m.actionable ? "can justify actions" : "cannot justify actions"}.
+      Stored by ${esc(m.source_type.replace("_"," "))}${m.source_id ? ` from ${esc(m.source_id)}` : ""} for ${esc(m.agent_id)}, version ${m.version}.</p>
+    <h2>Why</h2><ul class="reasons">${(r.findings.length ? r.findings : ["No findings."]).map(f => `<li>${esc(f)}</li>`).join("")}</ul>
+    <p><b>Next step:</b> ${esc(r.recommended_action)}</p>
+    <h2>Signals</h2><div class="bars">${bars(m.signals)}</div>
+    <h2>Where it came from</h2>${lineage}
+    ${r.conflicting_memories.length ? `<h2>Conflicts</h2><table><tr><th>Fact</th><th>This memory</th><th>Existing</th><th>Existing trust</th></tr>
+      ${r.conflicting_memories.map(c => `<tr><td>${esc(c.key)}</td><td>${esc(c.this_value)}</td><td>${esc(c.their_value)}</td><td class="num">${c.their_trust}</td></tr>`).join("")}</table>` : ""}
+    <h2>Versions</h2><table><tr><th>Version</th><th>Content</th><th>Changed by</th><th>Risk</th><th></th></tr>
+      ${v.map(x => `<tr><td class="num">${x.version}</td><td>${esc(x.content)}</td><td>${esc(x.changed_by.replace("_"," "))}${x.change_reason ? `: ${esc(x.change_reason)}` : ""}</td><td class="num">${x.risk_score}</td>
+      <td>${x.version !== m.version ? `<button data-rollback="${x.version}">Roll back</button>` : "Current"}</td></tr>`).join("")}</table>
+    <div class="actions">
+      <input id="reason" placeholder="Reason for your decision" aria-label="Reason">
+      ${m.status !== "active" ? `<button data-act="restore">Restore</button>` : `<button class="danger" data-act="quarantine">Quarantine</button>`}
+      ${m.status !== "deleted" ? `<button class="danger" data-act="delete">Delete</button>` : ""}
+    </div>`;
+}
+
+async function act(kind, arg) {
+  const reason = $("#reason")?.value || "";
+  const body = JSON.stringify({reason});
+  try {
+    if (kind === "delete") { if (!confirm("Delete this memory? Memories derived from it will be quarantined.")) return;
+      await api(`/v1/memories/${current}`, {method: "DELETE"}); toast("Deleted"); }
+    else if (kind === "rollback") { await api(`/v1/memories/${current}/versions/${arg}/restore`, {method: "POST", body}); toast(`Rolled back to version ${arg}`); }
+    else { const r = await api(`/v1/memories/${current}/${kind}`, {method: "POST", body});
+      toast(kind === "quarantine" ? `Quarantined${r.cascade_quarantined?.length ? ` with ${r.cascade_quarantined.length} derived memories` : ""}` : "Restored"); }
+    await Promise.all([loadSummary(), loadList(), openMemory(current)]);
+  } catch (e) { toast(e.message); }
+}
+
+$(".filters").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  filter = b.dataset.s;
+  document.querySelectorAll(".filters button").forEach(x => x.setAttribute("aria-pressed", x === b));
+  loadList();
+});
+$("#list").addEventListener("click", e => { const b = e.target.closest("button[data-id]"); if (b) openMemory(b.dataset.id); });
+$("#detail").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.id) openMemory(b.dataset.id);
+  else if (b.dataset.act) act(b.dataset.act);
+  else if (b.dataset.rollback) act("rollback", b.dataset.rollback);
+});
+let t; $("#q").addEventListener("input", () => { clearTimeout(t); t = setTimeout(loadList, 250); });
+start();
+</script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+MemoryGuard admin key (your one permanent key)
+
+Use it to sign in at http://localhost:8000. The playground, live test and
+run_windows.bat read it from this file automatically.
+
+WARNING: anyone who has this file is the admin. Before you zip, upload, email or
+share this project folder, MOVE THIS FILE OUT of it first.
+
+Do NOT run rotate-admin unless this key was leaked: it replaces the key.
+
+mg_adm_lMVXFcLXo901-hdOT5BbK8S5J-uFa4Ox5a-ujzGJD1E

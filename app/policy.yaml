@@ -1,0 +1,33 @@
+# MemoryGuard policy. All numbers are defaults; tune per deployment.
+source_trust:            # declared trust by source type (0-100)
+  system: 95
+  app_data: 90
+  user_verified: 75
+  tool_internal: 70
+  user_unverified: 40
+  agent_generated: 50    # used only when a generated memory has no parents
+  external: 25
+  document: 15
+
+actionable_trust: 70     # below this, a memory can inform answers but never justify actions
+grounded_trust: 75       # trust granted to facts confirmed by ground_truth
+orphan_trust: 10         # parent missing, deleted, or quarantined
+
+thresholds:              # risk -> decision (upper bound exclusive)
+  allow: 30
+  allow_log: 60
+  review: 80             # risk >= 80 -> quarantine
+
+cascade_quarantine: true
+
+# Undeclared lineage. A write that copies a less trusted memory of the same agent
+# (without naming it in parent_ids) is treated as derived from it: it takes that
+# memory's trust and is linked to it for cascade quarantine.
+laundering:
+  enabled: true
+  copy_threshold: 0.6    # share of the new text's 3-word phrases found in the old memory
+  scan_limit: 2000       # most recent memories of the agent compared on each write
+
+# Optional trusted facts for grounding checks. key -> value (lowercase).
+ground_truth:
+  acme support email: support@acme.com
